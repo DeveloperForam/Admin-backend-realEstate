@@ -1,7 +1,7 @@
 const Booking = require("../models/booking");
 const BookingHistory = require("../models/bookingHistory");
+const Lily = require("../models/home"); // your Lily schema file (home.js)
 
-/* ================= ADD PAYMENT ================= */
 exports.addPayment = async (req, res) => {
   try {
     const {
@@ -21,53 +21,67 @@ exports.addPayment = async (req, res) => {
       return res.status(404).json({ message: "Booking not found" });
     }
 
-    /* ================= AUTO ADD ADVANCE ENTRY (ONCE) ================= */
+    // 🔑 Fetch project using numeric id
+    const project = await Lily.findOne({ id: booking.projectId });
+    if (!project) {
+      return res.status(400).json({ message: "Project not found" });
+    }
+
+    const projectName = project.projectName;
+
     const historyCount = await BookingHistory.countDocuments({
       bookingId: booking._id,
     });
 
     if (historyCount === 0 && booking.advancePayment > 0) {
-      const advanceHistory = new BookingHistory({
-        bookingId: booking._id,
-        customerName: booking.customerName,
-        houseNumber: booking.houseNumber,
-        totalAmount: booking.totalAmount,
-        advancePayment: booking.advancePayment,
-        pendingAmount: booking.totalAmount - booking.advancePayment,
-        amountReceived: booking.advancePayment,
-        paymentMethod: "advance",
-        paymentDetails: "Advance payment at booking time",
-        paymentReceivedDate: booking.createdAt,
-      });
+  const advancePending =
+    booking.totalAmount - booking.advancePayment;
 
-      await advanceHistory.save();
-    }
+  const advanceHistory = new BookingHistory({
+    bookingId: booking._id,
+    projectName,
+    customerName: booking.customerName,
+    houseNumber: booking.houseNumber,
+    totalAmount: booking.totalAmount,
+    advancePayment: booking.advancePayment,
+    pendingAmount: advancePending < 0 ? 0 : advancePending,
+    amountReceived: booking.advancePayment,
+    paymentMethod: "advance",
+    paymentDetails: "Advance payment at booking time",
+    paymentReceivedDate: booking.createdAt,
+  });
 
-    /* ================= VALIDATION ================= */
+  await advanceHistory.save();
+}
+
+
     if (amountReceived > booking.pendingAmount) {
       return res.status(400).json({
         message: "Amount exceeds pending payment",
       });
     }
 
-    /* ================= ADD NEW PAYMENT ================= */
-    const history = new BookingHistory({
-      bookingId: booking._id,
-      customerName: booking.customerName,
-      houseNumber: booking.houseNumber,
-      totalAmount: booking.totalAmount,
-      advancePayment: booking.advancePayment,
-      pendingAmount: booking.pendingAmount - amountReceived,
-      amountReceived,
-      paymentMethod,
-      paymentDetails,
-      paymentReceivedDate,
-    });
+    const newPending = booking.pendingAmount - amountReceived;
 
-    booking.pendingAmount -= amountReceived;
+booking.pendingAmount = newPending < 0 ? 0 : newPending;
 
-    await booking.save();
-    await history.save();
+const history = new BookingHistory({
+  bookingId: booking._id,
+  projectName,
+  customerName: booking.customerName,
+  houseNumber: booking.houseNumber,
+  totalAmount: booking.totalAmount,
+  advancePayment: booking.advancePayment,
+  pendingAmount: booking.pendingAmount,
+  amountReceived,
+  paymentMethod,
+  paymentDetails,
+  paymentReceivedDate,
+});
+
+await booking.save();
+await history.save();
+
 
     res.status(201).json({
       message: "Payment recorded successfully",
@@ -77,6 +91,7 @@ exports.addPayment = async (req, res) => {
     res.status(400).json({ error: error.message });
   }
 };
+
 
 
 /* ================= GET DATE-WISE HISTORY ================= */
@@ -101,8 +116,12 @@ exports.getPaymentHistory = async (req, res) => {
       filter.paymentMethod = paymentMethod;
     }
 
-    const history = await BookingHistory.find(filter)
-      .sort({ paymentReceivedDate: 1 });
+    // const history = await BookingHistory.find(filter)
+    //   .sort({ paymentReceivedDate: 1 });
+
+     const history = await BookingHistory.find(filter)
+      .sort({ createdAt: -1 });
+
 
     res.json({ data: history });
   } catch (error) {

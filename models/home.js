@@ -14,6 +14,42 @@ const LilySchema = new mongoose.Schema(
 
     location: String,
 
+    // 🌍 LAT-LONG (Leaflet compatible)
+   geoLocation: {
+  type: {
+    type: String,
+    enum: ["Point"],
+    default: "Point",
+  },
+  coordinates: {
+    type: [Number], // [lng, lat]
+    index: "2dsphere",
+  },
+},
+
+    // 🖼 PROJECT IMAGES
+    images: [
+      {
+        url: String,
+      },
+    ],
+
+    // 🏢 FLOOR PLAN IMAGES (1–3)
+    floorPlans: [
+      {
+        title: String,
+        url: String,
+      },
+    ],
+
+    // ⭐ AMENITIES
+    amenities: [
+      {
+        type: String,
+      },
+    ],
+
+
     totalWings: Number,
     totalFloors: Number,
     perFloorHouse: Number,

@@ -1,9 +1,12 @@
 const express = require("express");
 const router = express.Router();
 
+const upload = require("../middleware/upload"); // ✅ added
+
 const {
   createProject,
   getProjects,
+  getNearbyProjects,
   getProject,
   updateProject,
   deleteProject,
@@ -11,14 +14,25 @@ const {
   getProjectHouseList,
   getProjectsCount,
   getHouseStatusCounts,
+  deleteProjectImage,
+  updateProjectImage,
 } = require("../controllers/homeController");
 
-// CREATE PROJECT
-router.post("/", createProject);
+// ==============================
+// CREATE PROJECT (with images)
+// ==============================
+router.post(
+  "/",
+  upload.fields([
+    { name: "images", maxCount: 10 },
+    { name: "floorPlans", maxCount: 10 },
+  ]),
+  createProject
+);
 
 // COUNTS
+router.get("/nearby", getNearbyProjects);
 router.get("/count", getProjectsCount);
-router.get("/status-count", getHouseStatusCounts);
 
 // DETAILS & HOUSES
 router.get("/details/:id", getProjectDetails);
@@ -30,6 +44,12 @@ router.get("/:id", getProject);
 router.put("/:id", updateProject);
 router.delete("/:id", deleteProject);
 
-// ❌ REMOVED updateHouseStatus route
+router.get("/status-count", getHouseStatusCounts);
+router.delete("/:id/image/:imageId", deleteProjectImage);
+router.put(
+  "/:id/image/:imageId",
+  upload.single("image"),
+  updateProjectImage
+);
 
 module.exports = router;

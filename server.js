@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const path = require("path");
 const connectDB = require("./config/db");
 require("dotenv").config();
 
@@ -7,7 +8,8 @@ const lilyRoutes = require("./routes/homeRoutes");
 const serviceRoutes = require("./routes/serviceRoutes");
 const bookingRoutes = require("./routes/bookingRoutes");
 const bookingHistoryRoutes = require("./routes/bookingHistoryRoutes");
-
+const testimonialRoutes = require("./routes/testimonialRoutes");
+const faqRoutes = require("./routes/faqRoutes");
 
 const app = express();
 
@@ -17,24 +19,46 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 /* ================= STATIC FILES ================= */
-app.use("/uploads", express.static("uploads"));
+// VERY IMPORTANT
+app.use("/uploads/projects", express.static("uploads/projects"));
 
-/* ================= CONNECT DB & ROUTES ================= */
-connectDB()
-  .then(() => {
-    console.log("MongoDB connected");
+/* ================= ROUTES ================= */
+connectDB().then(() => {
+  console.log("MongoDB connected");
 
-    app.use("/api/lily", lilyRoutes);
-    app.use("/api/services", serviceRoutes);
-    app.use("/api/bookings", bookingRoutes);
-    app.use("/api/payment-history", bookingHistoryRoutes);
+  app.use("/api/lily", lilyRoutes);
+  app.use("/api/services", serviceRoutes);
+  app.use("/api/bookings", bookingRoutes);
+  app.use("/api/payment-history", bookingHistoryRoutes);
+  app.use("/api/testimonials", testimonialRoutes);
+  app.use("/api/faqs", faqRoutes);
 
 
-    const PORT = process.env.PORT || 5000;
-    app.listen(PORT, () =>
-      console.log(`🚀 Server running on port ${PORT}`)
-    );
-  })
-  .catch((err) => {
-    console.error("MongoDB connection failed:", err);
-  });
+  // Add this route to test file serving
+app.get("/test-uploads", (req, res) => {
+  const fs = require("fs");
+  const path = require("path");
+  
+  const uploadsPath = path.join(__dirname, "uploads");
+  const projectsPath = path.join(__dirname, "uploads/projects");
+  
+  try {
+    const filesInUploads = fs.readdirSync(uploadsPath);
+    const filesInProjects = fs.readdirSync(projectsPath);
+    
+    res.json({
+      uploadsDir: uploadsPath,
+      projectsDir: projectsPath,
+      filesInUploads,
+      filesInProjects
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () =>
+    console.log(`🚀 Server running on port ${PORT}`)
+  );
+});
