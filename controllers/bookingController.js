@@ -141,6 +141,7 @@ exports.getAllBookings = async (req, res) => {
       count: bookings.length,
       data: bookings,
     });
+    console.log("Fetched Bookings:", bookings); // ✅ Print fetched bookings  
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -150,9 +151,7 @@ exports.getAllBookings = async (req, res) => {
 /* ================= GET SINGLE BOOKING ================= */
 exports.getBookingById = async (req, res) => {
   try {
-    const booking = await Booking.findOne({
-      bookingId: req.params.bookingId,
-    });
+    const booking = await Booking.findById(req.params.bookingId);
 
     if (!booking) {
       return res.status(404).json({
@@ -161,11 +160,16 @@ exports.getBookingById = async (req, res) => {
       });
     }
 
-    res.json({ success: true, data: booking });
+    res.status(200).json(booking);
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error("Booking Fetch Error:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
+
 
 
 /* ================= PAY EMI ================= */

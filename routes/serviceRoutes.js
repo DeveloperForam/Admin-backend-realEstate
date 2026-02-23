@@ -4,11 +4,35 @@ const controller = require("../controllers/serviceController");
 
 const router = express.Router();
 
-router.post("/", upload.single("image"), controller.createService);
-router.put("/:id", upload.single("image"), controller.updateService);
-router.get("/", controller.getAllServices);
-router.delete("/:id", controller.deleteService);
-router.get("/:id", controller.getServiceById);
+// ✅ CREATE SERVICE
+router.post(
+  "/",
+  (req, res, next) => {
+    req.uploadFolder = "services"; // uploads/services
+    next();
+  },
+  upload.single("image"),
+  controller.createService
+);
 
+// ✅ UPDATE SERVICE
+router.put(
+  "/:id",
+  (req, res, next) => {
+    req.uploadFolder = "services"; // uploads/services
+    next();
+  },
+  upload.single("image"),
+  controller.updateService
+);
+
+// ✅ GET ALL SERVICES
+router.get("/", controller.getAllServices);
+
+// ✅ DELETE SERVICE
+router.delete("/:id", controller.deleteService);
+
+// ✅ GET SINGLE SERVICE
+router.get("/:id", controller.getServiceById);
 
 module.exports = router;

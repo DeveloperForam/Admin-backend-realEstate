@@ -1,55 +1,43 @@
 const express = require("express");
 const router = express.Router();
+const upload = require("../middleware/upload");
 
-const upload = require("../middleware/upload"); // ✅ added
+const controller = require("../controllers/homeController");
 
-const {
-  createProject,
-  getProjects,
-  getNearbyProjects,
-  getProject,
-  updateProject,
-  deleteProject,
-  getProjectDetails,
-  getProjectHouseList,
-  getProjectsCount,
-  getHouseStatusCounts,
-  deleteProjectImage,
-  updateProjectImage,
-} = require("../controllers/homeController");
-
-// ==============================
-// CREATE PROJECT (with images)
-// ==============================
+// Project CRUD
 router.post(
   "/",
   upload.fields([
     { name: "images", maxCount: 10 },
-    { name: "floorPlans", maxCount: 10 },
+    { name: "floorPlans", maxCount: 10 }
   ]),
-  createProject
+  controller.createProject
 );
 
-// COUNTS
-router.get("/nearby", getNearbyProjects);
-router.get("/count", getProjectsCount);
+router.get("/", controller.getProjects);
+router.get("/count", controller.getProjectsCount);
+router.get("/:id", controller.getProject);
 
-// DETAILS & HOUSES
-router.get("/details/:id", getProjectDetails);
-router.get("/houses/:projectId", getProjectHouseList);
+router.put(
+  "/:id",
+  upload.fields([
+    { name: "images", maxCount: 10 },
+    { name: "floorPlans", maxCount: 10 }
+  ]),
+  controller.updateProject
+);
 
-// PROJECT CRUD
-router.get("/", getProjects);
-router.get("/:id", getProject);
-router.put("/:id", updateProject);
-router.delete("/:id", deleteProject);
+router.delete("/:id", controller.deleteProject);
 
-router.get("/status-count", getHouseStatusCounts);
-router.delete("/:id/image/:imageId", deleteProjectImage);
+// House related
+router.get("/houses/:projectId", controller.getProjectHouseList);
+
+// Image management
+router.delete("/:id/image/:imageId", controller.deleteProjectImage);
 router.put(
   "/:id/image/:imageId",
   upload.single("image"),
-  updateProjectImage
+  controller.updateProjectImage
 );
 
 module.exports = router;

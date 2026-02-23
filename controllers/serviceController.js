@@ -1,6 +1,7 @@
 const Service = require("../models/Service");
 const Counter = require("../models/counter");
-
+const fs = require("fs");
+const path = require("path");
 
 // ➕ CREATE SERVICE
 exports.createService = async (req, res) => {
@@ -19,14 +20,15 @@ exports.createService = async (req, res) => {
       description: req.body.description,
 
       features: req.body.features
-        ? req.body.features.split(",").map(f => f.trim())
+        ? req.body.features.split(",").map((f) => f.trim())
         : [],
 
       amenities: req.body.amenities
-        ? req.body.amenities.split(",").map(a => a.trim())
+        ? req.body.amenities.split(",").map((a) => a.trim())
         : [],
 
-      image: req.file ? req.file.filename : null,
+      // ✅ Save full path
+      image: req.file ? `uploads/services/${req.file.filename}` : null,
     });
 
     await service.save();
@@ -38,14 +40,11 @@ exports.createService = async (req, res) => {
   }
 };
 
-
-
 // 📥 GET ALL SERVICES
 exports.getAllServices = async (req, res) => {
   const services = await Service.find().sort({ id: 1 });
   res.json({ success: true, data: services });
 };
-
 
 // 📄 GET SINGLE SERVICE BY ID
 exports.getServiceById = async (req, res) => {
@@ -76,33 +75,43 @@ exports.getServiceById = async (req, res) => {
 // ✏ UPDATE SERVICE
 exports.updateService = async (req, res) => {
   try {
-    const updateData = {
-      title: req.body.title,
-      shortDescription: req.body.shortDescription,
-      description: req.body.description,
-
-      features: req.body.features
-        ? req.body.features.split(",").map(f => f.trim())
-        : [],
-
-      amenities: req.body.amenities
-        ? req.body.amenities.split(",").map(a => a.trim())
-        : [],
-    };
-
-    if (req.file) {
-      updateData.image = req.file.filename;
-    }
-
-    const service = await Service.findOneAndUpdate(
-      { id: req.params.id },
-      updateData,
-      { new: true }
-    );
+    const service = await Service.findOne({ id: req.params.id });
 
     if (!service) {
-      return res.status(404).json({ message: "Service not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Service not found",
+      });
     }
+
+    // ✅ Update fields
+    service.title = req.body.title;
+    service.shortDescription = req.body.shortDescription;
+    service.description = req.body.description;
+
+    service.features = req.body.features
+      ? req.body.features.split(",").map((f) => f.trim())
+      : [];
+
+    service.amenities = req.body.amenities
+      ? req.body.amenities.split(",").map((a) => a.trim())
+      : [];
+
+    // ✅ If new image uploaded
+    if (req.file) {
+      // Delete old image file
+      if (service.image) {
+        const oldPath = path.join(__dirname, "..", service.image);
+        if (fs.existsSync(oldPath)) {
+          fs.unlinkSync(oldPath);
+        }
+      }
+
+      // Save new image
+      service.image = `uploads/services/${req.file.filename}`;
+    }
+
+    await service.save();
 
     res.json({ success: true, data: service });
   } catch (error) {
@@ -114,12 +123,34 @@ exports.updateService = async (req, res) => {
   }
 };
 
-
-
-
 // 🗑 DELETE SERVICE
 exports.deleteService = async (req, res) => {
-  await Service.findOneAndDelete({ id: req.params.id });
-  res.json({ success: true });
-};
+  try {
+    const service = await Service.findOne({ id: req.params.id });
 
+    if (!service) {
+      return res.status(404).json({
+        success: false,
+        message: "Service not found",
+      });
+    }
+
+    // ✅ Delete image file also
+    if (service.image) {
+      const imgPath = path.join(__dirname, "..", service.image);
+
+      if (fs.existsSync(imgPath)) {
+        fs.unlinkSync(imgPath);
+      }
+    }
+
+    await Service.findOneAndDelete({ id: req.params.id });
+
+    res.json({ success: true, message: "Service deleted successfully" });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};

@@ -10,6 +10,7 @@ const bookingRoutes = require("./routes/bookingRoutes");
 const bookingHistoryRoutes = require("./routes/bookingHistoryRoutes");
 const testimonialRoutes = require("./routes/testimonialRoutes");
 const faqRoutes = require("./routes/faqRoutes");
+const contactRoute = require("./routes/contactRoutes");
 
 const app = express();
 
@@ -20,7 +21,7 @@ app.use(express.urlencoded({ extended: true }));
 
 /* ================= STATIC FILES ================= */
 // VERY IMPORTANT
-app.use("/uploads/projects", express.static("uploads/projects"));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 /* ================= ROUTES ================= */
 connectDB().then(() => {
@@ -29,10 +30,10 @@ connectDB().then(() => {
   app.use("/api/lily", lilyRoutes);
   app.use("/api/services", serviceRoutes);
   app.use("/api/bookings", bookingRoutes);
-  app.use("/api/payment-history", bookingHistoryRoutes);
+  app.use("/api/booking-history", bookingHistoryRoutes);
   app.use("/api/testimonials", testimonialRoutes);
   app.use("/api/faqs", faqRoutes);
-
+  app.use("/api/contact", contactRoute);
 
   // Add this route to test file serving
 app.get("/test-uploads", (req, res) => {
@@ -56,6 +57,8 @@ app.get("/test-uploads", (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+
 
   const PORT = process.env.PORT || 5000;
   app.listen(PORT, () =>
