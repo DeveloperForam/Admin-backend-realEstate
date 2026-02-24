@@ -5,12 +5,12 @@ const connectDB = require("./config/db");
 require("dotenv").config();
 
 const lilyRoutes = require("./routes/homeRoutes");
-const serviceRoutes = require("./routes/serviceRoutes");
 const bookingRoutes = require("./routes/bookingRoutes");
 const bookingHistoryRoutes = require("./routes/bookingHistoryRoutes");
 const testimonialRoutes = require("./routes/testimonialRoutes");
 const faqRoutes = require("./routes/faqRoutes");
 const contactRoute = require("./routes/contactRoutes");
+const adminRoutes = require("./routes/adminRoutes");
 
 const app = express();
 
@@ -27,8 +27,8 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 connectDB().then(() => {
   console.log("MongoDB connected");
 
+  app.use("/api/admin", adminRoutes);
   app.use("/api/lily", lilyRoutes);
-  app.use("/api/services", serviceRoutes);
   app.use("/api/bookings", bookingRoutes);
   app.use("/api/booking-history", bookingHistoryRoutes);
   app.use("/api/testimonials", testimonialRoutes);
