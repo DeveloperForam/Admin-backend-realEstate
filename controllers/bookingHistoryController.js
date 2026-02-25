@@ -1,110 +1,102 @@
-const BookingHistory = require("../models/bookingHistory");
 const Booking = require("../models/booking");
+const BookingHistory = require("../models/bookingHistory");
 
 /* ================= ADD PAYMENT ================= */
 exports.addPayment = async (req, res) => {
   try {
-    // console.log("Request Body:", req.body);  // ✅ Print incoming data
-
     const {
-      bookingId,
-      amountReceived,
-      paymentReceivedDate,
-      paymentMethod,
-    } = req.body;
+  bookingId,
+  amountReceived,
+  paymentMethod,
+  paymentDetails,   // ✅ NEW
+  paymentReceivedDate,
+} = req.body;
+
+    if (!bookingId || !amountReceived || !paymentMethod || !paymentReceivedDate) {
+      return res.status(400).json({ message: "Required fields missing" });
+    }
 
     const booking = await Booking.findById(bookingId);
-    // console.log("Booking Data:", booking);   // ✅ Print booking data
+    if (!booking) {
+      return res.status(404).json({ message: "Booking not found" });
+    }
+
+    if (amountReceived > booking.pendingAmount) {
+      return res.status(400).json({
+        message: "Amount exceeds pending payment",
+      });
+    }
+
+    const history = new BookingHistory({
+  bookingId: booking._id,
+  customerName: booking.customerName,
+  houseNumber: booking.houseNumber,
+  totalAmount: booking.totalPayment,
+  advancePayment: booking.advancePayment,
+  pendingAmount: booking.pendingAmount - booking.advancePayment - amountReceived,
+  amountReceived,
+  paymentMethod,
+  paymentDetails, // ✅ NEW
+  paymentReceivedDate,
+});
+
+
+    booking.pendingAmount -= amountReceived;
+    await booking.save();
+
+    await history.save();
+
+    res.status(201).json({
+      message: "Payment recorded successfully",
+      data: history,
+    });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
+/* ================= GET DATE-WISE HISTORY ================= */
+exports.getPaymentHistory = async (req, res) => {
+  try {
+    const { bookingId, fromDate, toDate, paymentMethod } = req.query;
+
+    const filter = {};
+
+    if (bookingId) {
+      filter.bookingId = bookingId;
+    }
+
+    if (fromDate && toDate) {
+      filter.paymentReceivedDate = {
+        $gte: new Date(fromDate),
+        $lte: new Date(toDate),
+      };
+    }
+
+    if (paymentMethod) {
+      filter.paymentMethod = paymentMethod;
+    }
+
+    const history = await BookingHistory.find(filter)
+      .sort({ paymentReceivedDate: 1 });
+
+    res.json({ data: history });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+
+exports.getBookingById = async (req, res) => {
+  try {
+    const booking = await Booking.findById(req.params.id);
 
     if (!booking) {
       return res.status(404).json({ message: "Booking not found" });
     }
 
-    const totalAmount = booking.totalAmount;
-    const advancePayment = booking.advancePayment || 0;
-
-    // Initial Pending
-    const initialPending = totalAmount - advancePayment;
-
-    // Get total already received
-    const previousPayments = await BookingHistory.find({ bookingId });
-
-    const totalReceivedBefore = previousPayments.reduce(
-      (sum, item) => sum + item.amountReceived,
-      0
-    );
-
-    const totalReceivedNow =
-      totalReceivedBefore + Number(amountReceived);
-
-    let pendingAfterAmount = initialPending - totalReceivedNow;
-
-    if (pendingAfterAmount < 0) {
-      pendingAfterAmount = 0;
-    }
-
-    const currentStatus =
-      pendingAfterAmount === 0 ? "Paid" : "Pending";
-
-    // const test = "Hello";
-    // Save history
-    const history = new BookingHistory({
-      bookingId,
-      customerName: booking.customerName,
-      houseNumber: booking.houseNumber,
-      totalAmount,
-      advancePayment,
-      amountReceived,
-      pendingAmount: pendingAfterAmount,
-      paymentReceivedDate,
-      paymentMethod,
-    });
-
-    
-    await history.save();
-    // console.log("Saved History:", history);   // ✅ Print saved history
-
-    booking.pendingAmount = pendingAfterAmount;
-    booking.status = currentStatus;
-
-    await booking.save();
-    // console.log("Updated Booking:", booking); // ✅ Print updated booking
-
-    console.log({
-  bookingId,
-  initialPending,
-  totalReceivedBefore,
-  pendingAfterAmount,
-  currentStatus,
-});
-
-    res.status(201).json({
-      message: "Payment added successfully",
-      history,
-    });
-
+    res.json({ data: booking });
   } catch (error) {
-    console.log("Add Payment Error:", error);
-    res.status(500).json({ message: "Server error" });
-  }
-};
-
-/* ================= GET HISTORY ================= */
-exports.getBookingHistory = async (req, res) => {
-  try {
-    const { bookingId } = req.params;
-
-    console.log("Booking ID:", bookingId);  // ✅ Print ID
-
-    const history = await BookingHistory.find({ bookingId }).sort({
-      paymentReceivedDate: 1,
-    });
-
-    console.log("History Data:", history);  // ✅ Print history
-
-    res.status(200).json(history);
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: error.message });
   }
 };

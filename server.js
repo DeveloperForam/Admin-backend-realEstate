@@ -30,7 +30,7 @@ connectDB().then(() => {
   app.use("/api/admin", adminRoutes);
   app.use("/api/lily", lilyRoutes);
   app.use("/api/bookings", bookingRoutes);
-  app.use("/api/booking-history", bookingHistoryRoutes);
+  app.use("/api/payment-history", bookingHistoryRoutes);
   app.use("/api/testimonials", testimonialRoutes);
   app.use("/api/faqs", faqRoutes);
   app.use("/api/contact", contactRoute);
