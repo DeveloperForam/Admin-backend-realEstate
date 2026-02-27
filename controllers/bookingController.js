@@ -12,7 +12,7 @@ exports.createBooking = async (req, res) => {
       paymentType,
       totalSqFeet,
       pricePerSqFeet,
-      advancePayment = 0,
+      advancePayment,
       emiMonths,
       monthlyEmi,
       bookingDate,
@@ -26,7 +26,7 @@ exports.createBooking = async (req, res) => {
     }
 
     const totalAmount = Number(totalSqFeet) * Number(pricePerSqFeet);
-    const advance = Number(advancePayment) || 0;
+    const advance = Number(advancePayment);
 
     if (advance > totalAmount) {
       return res.status(400).json({
@@ -90,9 +90,6 @@ exports.createBooking = async (req, res) => {
       pricePerSqFeet,
       advancePayment: advance,
       paymentType,
-      emiMonths: paymentType === "emi" ? emiMonths : 0,
-      monthlyEmi: paymentType === "emi" ? monthlyEmi : 0,
-      emiSchedule,
       bookingDate,
     });
 

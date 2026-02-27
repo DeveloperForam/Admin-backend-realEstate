@@ -26,7 +26,7 @@ const BookingSchema = new mongoose.Schema(
     pricePerSqFeet: { type: Number, required: true },
 
   
-    advancePayment: { type: Number, default: 0 },
+    advancePayment: { type: Number},
   
 
     totalAmount: { type: Number },
@@ -38,8 +38,8 @@ pendingAmount: { type: Number },
       required: true,
     },
 
-    emiMonths: { type: Number, default: 0 },
-    monthlyEmi: { type: Number, default: 0 },
+    emiMonths: { type: Number},
+    monthlyEmi: { type: Number},
     emiSchedule: [EmiSchema],
 
     bookingDate: { type: Date, default: Date.now },

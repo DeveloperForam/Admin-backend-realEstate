@@ -1,16 +1,16 @@
 const Booking = require("../models/booking");
 const BookingHistory = require("../models/bookingHistory");
+const Lily = require("../models/home"); // your Lily schema file (home.js)
 
-/* ================= ADD PAYMENT ================= */
 exports.addPayment = async (req, res) => {
   try {
     const {
-  bookingId,
-  amountReceived,
-  paymentMethod,
-  paymentDetails,   // ✅ NEW
-  paymentReceivedDate,
-} = req.body;
+      bookingId,
+      amountReceived,
+      paymentMethod,
+      paymentDetails,
+      paymentReceivedDate,
+    } = req.body;
 
     if (!bookingId || !amountReceived || !paymentMethod || !paymentReceivedDate) {
       return res.status(400).json({ message: "Required fields missing" });
@@ -21,29 +21,57 @@ exports.addPayment = async (req, res) => {
       return res.status(404).json({ message: "Booking not found" });
     }
 
-    if (amountReceived > booking.pendingAmount) {
+    // Find existing history
+    let history = await BookingHistory.findOne({ bookingId });
+
+    //  If first time create document
+    if (!history) {
+      history = new BookingHistory({
+        bookingId: booking._id,
+        customerName: booking.customerName,
+        houseNumber: booking.houseNumber,
+        totalAmount: booking.totalAmount,
+        advancePayment: booking.advancePayment,
+        pendingAmount: booking.totalAmount - booking.advancePayment,
+        payments: [],
+      });
+
+      // Add advance payment automatically
+      if (booking.advancePayment > 0) {
+        history.payments.push({
+          amountReceived: booking.advancePayment,
+          paymentMethod: "advance",
+          paymentDetails: { note: "Advance payment at booking time" },
+          paymentReceivedDate: booking.createdAt,
+        });
+      }
+    }
+
+    //  Check pending
+    if (amountReceived > history.pendingAmount) {
       return res.status(400).json({
         message: "Amount exceeds pending payment",
       });
     }
 
-    const history = new BookingHistory({
-  bookingId: booking._id,
-  customerName: booking.customerName,
-  houseNumber: booking.houseNumber,
-  totalAmount: booking.totalPayment,
-  advancePayment: booking.advancePayment,
-  pendingAmount: booking.pendingAmount - booking.advancePayment - amountReceived,
-  amountReceived,
-  paymentMethod,
-  paymentDetails, // ✅ NEW
-  paymentReceivedDate,
-});
+    //  Push new payment into array
+    history.payments.push({
+      amountReceived,
+      paymentMethod,
+      paymentDetails,
+      paymentReceivedDate,
+    });
 
+    //  Minus from pending
+    history.pendingAmount =
+      history.pendingAmount - amountReceived < 0
+        ? 0
+        : history.pendingAmount - amountReceived;
 
-    booking.pendingAmount -= amountReceived;
+    //  Also update booking pending
+    booking.pendingAmount = history.pendingAmount;
+
     await booking.save();
-
     await history.save();
 
     res.status(201).json({
@@ -55,37 +83,40 @@ exports.addPayment = async (req, res) => {
   }
 };
 
+
 /* ================= GET DATE-WISE HISTORY ================= */
 exports.getPaymentHistory = async (req, res) => {
   try {
-    const { bookingId, fromDate, toDate, paymentMethod } = req.query;
+    const { bookingId } = req.query;
 
-    const filter = {};
-
-    if (bookingId) {
-      filter.bookingId = bookingId;
+    if (!bookingId) {
+      return res.status(400).json({ message: "BookingId required" });
     }
 
-    if (fromDate && toDate) {
-      filter.paymentReceivedDate = {
-        $gte: new Date(fromDate),
-        $lte: new Date(toDate),
-      };
+    const history = await BookingHistory.findOne({ bookingId });
+
+    if (!history) {
+      return res.json({ data: null });
     }
 
-    if (paymentMethod) {
-      filter.paymentMethod = paymentMethod;
-    }
+    // ✅ Custom sort
+    history.payments.sort((a, b) => {
+      // Advance always first
+      if (a.paymentMethod === "advance") return -1;
+      if (b.paymentMethod === "advance") return 1;
 
-    const history = await BookingHistory.find(filter)
-      .sort({ paymentReceivedDate: 1 });
+      // Then sort by date ASC
+      return (
+        new Date(a.paymentReceivedDate) -
+        new Date(b.paymentReceivedDate)
+      );
+    });
 
     res.json({ data: history });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
-
 
 exports.getBookingById = async (req, res) => {
   try {

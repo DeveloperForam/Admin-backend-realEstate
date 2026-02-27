@@ -19,13 +19,13 @@ const LilySchema = new mongoose.Schema(
     longitude: { type: Number }, // Longitude coordinate
     
     // Project configuration
-    totalWings: { type: Number, default: 0 },
-    totalFloors: { type: Number, default: 0 },
-    perFloorHouse: { type: Number, default: 0 },
-    totalPlots: { type: Number, default: 0 },
+    totalWings: { type: Number },
+    totalFloors: { type: Number },
+    perFloorHouse: { type: Number },
+    totalPlots: { type: Number },
     
     // Auto-generated fields
-    totalHouse: { type: Number, default: 0 },
+    totalHouse: { type: Number },
     houseNumbers: [{ type: String }],
 
     // Amenities
