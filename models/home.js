@@ -23,6 +23,7 @@ const LilySchema = new mongoose.Schema(
     totalFloors: { type: Number },
     perFloorHouse: { type: Number },
     totalPlots: { type: Number },
+    bhkTypes: { type: Number },
     
     // Auto-generated fields
     totalHouse: { type: Number },

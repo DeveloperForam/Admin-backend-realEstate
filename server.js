@@ -11,6 +11,8 @@ const testimonialRoutes = require("./routes/testimonialRoutes");
 const faqRoutes = require("./routes/faqRoutes");
 const contactRoute = require("./routes/contactRoutes");
 const adminRoutes = require("./routes/adminRoutes");
+const inventoryRoutes = require("./routes/inventoryRoutes");
+
 
 const app = express();
 
@@ -34,6 +36,7 @@ connectDB().then(() => {
   app.use("/api/testimonials", testimonialRoutes);
   app.use("/api/faqs", faqRoutes);
   app.use("/api/contact", contactRoute);
+  app.use("/api/inventory", inventoryRoutes);
 
   // Add this route to test file serving
 app.get("/test-uploads", (req, res) => {

@@ -1,5 +1,7 @@
 const Booking = require("../models/booking");
 const HouseListing = require("../models/house");
+const Inventory = require("../models/inventory");
+const Lily = require("../models/home");
 
 /* ================= CREATE BOOKING ================= */
 exports.createBooking = async (req, res) => {
@@ -92,6 +94,38 @@ exports.createBooking = async (req, res) => {
       paymentType,
       bookingDate,
     });
+
+    /* ================= UPDATE INVENTORY ================= */
+
+const project = await Lily.findOne({ id: projectId });
+
+let inventory = await Inventory.findOne({ projectId });
+
+if (!inventory) {
+  inventory = new Inventory({
+    projectId: projectId,
+    projectName: project.projectName,
+    totalHouse: project.totalHouse,
+    soldHouse: 0,
+    availableHouse: project.totalHouse,
+    totalSellingPrice: project.totalHouse * (project.price || 0),
+    soldAmount: 0,
+    remainingAmount: project.totalHouse * (project.price || 0)
+  });
+}
+
+/* update values */
+
+inventory.soldHouse += 1;
+
+inventory.availableHouse = inventory.totalHouse - inventory.soldHouse;
+
+inventory.soldAmount += totalAmount;
+
+inventory.remainingAmount =
+  inventory.totalSellingPrice - inventory.soldAmount;
+
+await inventory.save();
 
     res.status(201).json({
       success: true,
