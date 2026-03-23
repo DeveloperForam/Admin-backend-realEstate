@@ -1,8 +1,9 @@
 const express = require("express");
 const router = express.Router();
-const blogController = require("../controllers/blogController");
+const controller = require("../controllers/blogController");
 
-router.post("/add", blogController.addBlog);
-router.get("/", blogController.getBlogs);
+router.get("/", controller.getBlogs);
+router.post("/add", controller.addBlog);
+router.put("/update/:id", controller.updateBlog);
 
 module.exports = router;
